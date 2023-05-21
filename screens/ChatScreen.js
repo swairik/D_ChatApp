@@ -1,15 +1,4 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  ScrollView,
-  TextInput,
-  Input,
-  TouchableOpacity,
-  Keyboard,
-} from 'react-native';
+import {StyleSheet, Text, View, Keyboard} from 'react-native';
 import React, {useLayoutEffect, useState, useEffect} from 'react';
 import {useRoute} from '@react-navigation/native';
 
@@ -17,7 +6,7 @@ import uuid from 'uuid-random';
 
 import CryptoJS from 'react-native-crypto-js';
 
-import {GiftedChat, InputToolbar} from 'react-native-gifted-chat';
+import {GiftedChat} from 'react-native-gifted-chat';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Gun from 'gun/gun';
@@ -26,7 +15,7 @@ import 'gun/lib/radisk.js';
 import 'gun/lib/store.js';
 import Store from 'gun/lib/ras.js';
 
-import {ASYNC_STORAGE_USER_KEY, MESSAGE_ENCRYPTION_KEY} from '../constants';
+import {MESSAGE_ENCRYPTION_KEY} from '../constants';
 
 const ChatScreen = ({navigation}) => {
   const route = useRoute();
@@ -43,18 +32,16 @@ const ChatScreen = ({navigation}) => {
   };
   const [user, setUser] = useState();
 
-  //   console.log('channel :', route.params.user);
-
   const [input, setInput] = useState();
   const [messages, setMessages] = useState([]);
   let initialMessages = [];
 
-  let [peer, setPeer] = useState('http://192.168.29.55:8800');
+  let [peer, setPeer] = useState('http://gunjs.herokuapp.com/gun');
 
   const asyncStore = Store({AsyncStorage});
 
   const db = Gun({
-    peers: ['http://192.168.29.55:8800'],
+    peers: ['http://gunjs.herokuapp.com/gun'],
     store: asyncStore,
   });
 
@@ -81,71 +68,36 @@ const ChatScreen = ({navigation}) => {
     db.get(route.params.chatName)
       .map()
       .once(async (data, key) => {
-        console.log('logging from once');
-        // console.log(data);
-
-        let currentMessage =
-          // [
-          {
-            _id: data.message_id,
-            createdAt: new Date(data.when),
-            text: data.message,
-            user: {
-              _id: data.user_id,
-              name: data.user_name,
-            },
-          };
-        // ];
-
-        // console.log('current : ', currentMessage);
-
-        initialMessages.push(currentMessage);
-        console.log(initialMessages);
-        initialMessages.sort((a, b) => a.when - b.when);
-        setMessages(initialMessages);
-
-        // messages: GiftedChat.append(messages, currentMessage);
-        // messages.push(currentMessage);
-        // setMessages(currentMessage => {
-        //   console.log(currentMessage);
-        // });
-        // initialMessages.push(currentMessage);
-        // console.log('messages ', messages);
-
-        // updateMessages(currentMessage);
-
-        // gunMessages = await [...gunMessages, data];
-        // console.log(gunMessages);
-        // gunMessages.push(data);
-        // console.log(data);
-
-        // initialMessages = initialMessages.sort((a, b) => a.when - b.when);
-      });
-    // console.log('gun messages : ', initialMessages);
-  }, []);
-
-  db.get(route.params.chatName)
-    .map()
-    .on(async (data, key) => {
-      console.log('logging from on listener');
-
-      let currentMessage =
-        // [
-        {
+        let currentMessage = {
           _id: data.message_id,
           createdAt: new Date(data.when),
-          text: data.message,
+          text: decryptData(data.message, MESSAGE_ENCRYPTION_KEY),
           user: {
             _id: data.user_id,
             name: data.user_name,
           },
         };
-      // ];
 
-      console.log(currentMessage);
+        initialMessages.push(currentMessage);
+      });
+    initialMessages.sort((a, b) => b.when - a.when);
+    setMessages(initialMessages);
+  }, []);
 
-      initialMessages.push(currentMessage);
-      console.log(initialMessages);
+  db.get(route.params.chatName)
+    .map()
+    .on(async (data, key) => {
+      let currentMessage = {
+        _id: data.message_id,
+        createdAt: new Date(data.when),
+        text: data.message,
+        user: {
+          _id: data.user_id,
+          name: data.user_name,
+        },
+      };
+
+      initialMessages = [...initialMessages, currentMessage];
       initialMessages.sort((a, b) => a.when - b.when);
       setMessages(initialMessages);
     });
@@ -158,12 +110,10 @@ const ChatScreen = ({navigation}) => {
     let message = {
       user_id: user.userId,
       user_name: user.userName,
-      //   message: encryptData(input, MESSAGE_ENCRYPTION_KEY),
-      message: input,
+      message: encryptData(input, MESSAGE_ENCRYPTION_KEY),
       message_id: uuid(),
       when: new Date().toISOString(),
     };
-    // console.log(message);
     db.get(route.params.chatName).get(new Date().toISOString()).put(message);
     setInput('');
   };
@@ -171,7 +121,6 @@ const ChatScreen = ({navigation}) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       title: 'Chat',
-      //   headerBackTitleVisible: false,
       headerTitleAlign: 'left',
       headerTitle: () => (
         <View
@@ -191,68 +140,16 @@ const ChatScreen = ({navigation}) => {
   });
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        keyboardVerticalOffset={90}>
-        <>
-          <ScrollView>
-            {initialMessages.map(message => {
-              console.log('message : ', message);
-              message.user._id === user.userId ? (
-                <View style={styles.receiver}>
-                  <Text style={styles.receiverText}>{message.text}</Text>
-                </View>
-              ) : (
-                <View>
-                  <View style={styles.sender}>
-                    <Text style={styles.senderText}>{message.text}</Text>
-                  </View>
-                </View>
-              );
-              console.log('logging : ', message);
-            })}
-          </ScrollView>
-          <View style={styles.footer}>
-            <TextInput
-              value={input}
-              type="text"
-              onChangeText={text => setInput(text)}
-              onSubmitEditing={sendMessage}
-              placeholder="Input a message"
-              style={styles.textInput}
-            />
-            <TouchableOpacity onPress={sendMessage}>
-              <Text style={{color: '#2B68E6'}}>Send</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <GiftedChat
+      messages={messages}
+      onSend={messages => sendMessage(messages)}
+      user={{
+        _id: route.params.userId,
+      }}
+    />
   );
 };
 
 export default ChatScreen;
 
-const styles = StyleSheet.create({
-  container: {flex: 1},
-
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    padding: 15,
-    color: 'black',
-  },
-  textInput: {
-    bottom: 0,
-    height: 40,
-    flex: 1,
-    marginRight: 15,
-    borderColor: 'transparent',
-    backgroundColor: '#ECECEC',
-    padding: 10,
-    color: 'grey',
-    borderRadius: 30,
-  },
-});
+const styles = StyleSheet.create({});

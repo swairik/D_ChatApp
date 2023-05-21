@@ -4,6 +4,14 @@ import React, {useEffect, useState} from 'react';
 import {Image} from '@rneui/themed';
 import {Button, Input} from '@rneui/base';
 
+import Gun from 'gun/gun';
+import 'gun/lib/radix.js';
+import 'gun/lib/radisk.js';
+import 'gun/lib/store.js';
+import Store from 'gun/lib/ras.js';
+
+import CryptoJS from 'react-native-crypto-js';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ASYNC_STORAGE_USER_KEY,
@@ -14,15 +22,12 @@ import {
 
 import {useIsFocused} from '@react-navigation/native';
 
-import Gun from 'gun/gun';
-import CryptoJS from 'react-native-crypto-js';
-
 const LoginScreen = ({navigation}) => {
   const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
 
   const db = Gun({
-    peers: ['http://192.168.29.55:8800'],
+    peers: ['http://gunjs.herokuapp.com/gun'],
     store: false,
   });
 
@@ -90,19 +95,16 @@ const LoginScreen = ({navigation}) => {
           data,
           USER_CHANNEL_USERS_ENCRYPTION_KEY,
         );
-        // console.log('printing : data : ', data);
         const currUser = {
           userId: decryptedUserData.userId,
           userName: decryptedUserData.userName,
           name: decryptedUserData.name,
           password: decryptedUserData.password,
         };
-        // console.log(currUser);
         if (
           currUser.userName === userName &&
           decryptData(currUser.password, PASSWORD_ENCRYPTION_KEY) === password
         ) {
-          console.log('Logging in user : ', currUser);
           setLoginAllowed(true);
           userData = currUser;
         }
@@ -114,7 +116,7 @@ const LoginScreen = ({navigation}) => {
       } else {
         alert('Wrong credentials provided');
       }
-    }, 1000);
+    }, 2000);
   };
 
   return (

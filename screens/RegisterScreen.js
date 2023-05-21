@@ -21,10 +21,10 @@ const RegisterScreen = ({navigation}) => {
   const [userName, setuserName] = useState('');
   const [password, setPassword] = useState('');
 
-  let [peer, setPeer] = useState('http://192.168.29.55:8800');
+  let [peer, setPeer] = useState('http://gunjs.herokuapp.com/gun');
 
   const db = Gun({
-    peers: ['http://192.168.29.55:8800'],
+    peers: ['http://gunjs.herokuapp.com/gun'],
     store: false,
   });
 

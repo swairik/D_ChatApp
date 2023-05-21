@@ -5,7 +5,29 @@ import {Button, Input} from '@rneui/base';
 import {ASYNC_STORAGE_USER_SUBSCRIBED_CHAT_CHANNELS_KEY} from '../constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import Gun from 'gun/gun';
+import 'gun/lib/radix.js';
+import 'gun/lib/radisk.js';
+import 'gun/lib/store.js';
+import Store from 'gun/lib/ras.js';
+
 const AddChatScreen = ({navigation}) => {
+  let [peer, setPeer] = useState('http://gunjs.herokuapp.com/gun');
+
+  const asyncStore = Store({AsyncStorage});
+
+  const db = Gun({
+    peers: ['http://gunjs.herokuapp.com/gun'],
+    store: asyncStore,
+  });
+
+  const restartGun = () => {
+    gun = Gun({
+      peers: [peer],
+      store: asyncStore,
+    });
+  };
+
   const [input, setInput] = useState('');
 
   const storeData = async (value, key) => {
@@ -39,16 +61,21 @@ const AddChatScreen = ({navigation}) => {
       alert('invalid input');
       return;
     }
+
+    const insertIntoDb = cName => {
+      db.get(route.params.chatName).get(new Date().toISOString()).put(cName);
+    };
+
     getData(ASYNC_STORAGE_USER_SUBSCRIBED_CHAT_CHANNELS_KEY)
       .then(data => {
         if (data == undefined) {
           let chats = [];
           chats.push(input);
-          console.log(chats);
           storeData(
             JSON.stringify(chats),
             ASYNC_STORAGE_USER_SUBSCRIBED_CHAT_CHANNELS_KEY,
           );
+          insertIntoDb(input);
         } else {
           let canBeCreated = true;
           getData(ASYNC_STORAGE_USER_SUBSCRIBED_CHAT_CHANNELS_KEY)
@@ -65,6 +92,7 @@ const AddChatScreen = ({navigation}) => {
                   JSON.stringify(chats),
                   ASYNC_STORAGE_USER_SUBSCRIBED_CHAT_CHANNELS_KEY,
                 );
+                insertIntoDb(input);
                 navigation.pop();
               } else {
                 alert('Chat with this name already exists');

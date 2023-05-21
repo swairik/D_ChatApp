@@ -22,14 +22,14 @@ const HomeScreen = ({navigation}) => {
   const [currentUser, setCurrentUser] = useState();
 
   const db = Gun({
-    peers: ['http://192.168.29.55:8800'],
-    store: false,
+    peers: ['http://gunjs.herokuapp.com/gun'],
+    store: asyncStore({AsyncStorage}),
   });
 
   const restartGun = () => {
     gun = Gun({
       peers: [peer],
-      store: asyncStore,
+      store: asyncStore({AsyncStorage}),
     });
   };
 
@@ -77,7 +77,6 @@ const HomeScreen = ({navigation}) => {
         getData(ASYNC_STORAGE_USER_SUBSCRIBED_CHAT_CHANNELS_KEY).then(
           chatData => {
             setSubscribedChats(JSON.parse(chatData));
-            // console.log(subscribedChats);
           },
         );
       })
@@ -85,7 +84,6 @@ const HomeScreen = ({navigation}) => {
   }, [isFocused]);
 
   useLayoutEffect(() => {
-    console.log(subscribedChats);
     navigation.setOptions({
       title: 'Chats',
       headerStyle: {backgroundColor: '#fff'},
@@ -100,7 +98,6 @@ const HomeScreen = ({navigation}) => {
       ),
       headerRight: () => (
         <View style={{marginRight: 5}}>
-          {/* <Icon name="rowing" onPress={() => console.log('pressed button')} /> */}
           <TouchableOpacity onPress={signOut}>
             <Text style={{color: 'black'}}>Sign Out</Text>
           </TouchableOpacity>
@@ -110,8 +107,6 @@ const HomeScreen = ({navigation}) => {
   }, []);
 
   const enterChat = chatName => {
-    console.log('entering ', chatName);
-    console.log('currentUser from home ', currentUser);
     navigation.navigate('Chat', {
       chatName,
       currentUser,
